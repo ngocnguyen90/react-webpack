@@ -11,14 +11,17 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { isEmpty } from 'lodash';
 import { withRouter } from 'react-router-dom';
-import { CYRPTO_TYPE } from '../../contants/constants';
 import Modal from '../../containers/utilities/modal';
 import { toast } from 'react-hot-toast';
+import Loading from '../../containers/utilities/loading';
+import Pagination from '../../containers/utilities/pagination';
 
 const mapStateToProps = (state, _) => ({
-  crypto: state.crypto,
+  crypto: state.crypto.cryptoLists,
   headerTitle: state.headerTitle,
   searchData: state.searchData,
+  loading: state.crypto.loading,
+  error: state.crypto.error,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -41,23 +44,16 @@ class CryptoLists extends React.Component {
         message: '',
         saveButton: {
           color: '',
-          hover: ''
+          hover: '',
         },
       },
     };
   }
 
-  componentWillMount() {
-    const { cryptoActions, crypto } = this.props;
-    const newCrypto = crypto.map((item) => ({
-      ...item,
-      type: CYRPTO_TYPE.find(
-        (cryptoType) => cryptoType.id === item.type
-      )?.name,
-    }));
+  componentDidMount() {
+    const { cryptoActions } = this.props;
     cryptoActions.setHeaderTitle('Crypto Lists');
-    cryptoActions.setSearchData(newCrypto);
-    this.setState({ cryptoLists: newCrypto });
+    cryptoActions.getCryptoLists();
   }
 
   addCrypto() {
@@ -68,7 +64,7 @@ class CryptoLists extends React.Component {
     const { checked } = e.target;
     const { crypto } = this.props;
     if (checked) {
-      const newListChecked = crypto.map((item) => item.id);
+      const newListChecked = crypto.data.map((item) => item.id);
       this.setState({
         isCheckAll: checked,
         listChecked: newListChecked,
@@ -84,39 +80,24 @@ class CryptoLists extends React.Component {
       ? [...listChecked, +id]
       : listChecked.filter((item) => +item !== +id);
     if (!checked) this.setState({ isCheckAll: checked });
-    else if (newListChecked.length === crypto.length)
+    else if (newListChecked.length === crypto.data.length)
       this.setState({ isCheckAll: checked });
     this.setState({ listChecked: newListChecked });
   }
 
   searchDelay(query) {
-    const { searchTimeout, cryptoLists } = this.state;
+    const { searchTimeout } = this.state;
     const { cryptoActions } = this.props;
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
     const timeout = setTimeout(() => {
-      if (!!query) {
-        const results = this.doSearch(query);
-        cryptoActions.setSearchData(results);
-      } else cryptoActions.setSearchData(cryptoLists);
+      cryptoActions.getCryptoLists({ query });
     }, 300);
     this.setState({ searchTimeout: timeout });
   }
 
-  doSearch(query) {
-    const { cryptoLists } = this.state;
-    return cryptoLists.filter((item) => {
-      return (
-        +item.id === +query ||
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.type.toLowerCase().includes(query.toLowerCase()) ||
-        +item.price === +query
-      );
-    });
-  }
-
-  removeCrypto(id=null) {
+  removeCrypto(id = null) {
     this.setState({
       cryptoId: id,
       modal: {
@@ -126,42 +107,57 @@ class CryptoLists extends React.Component {
         saveButton: {
           color: 'bg-red-800',
           hover: 'hover:bg-red-700',
-        }
+        },
       },
     });
   }
 
   removeSingle(id) {
-    const { crypto, cryptoActions } = this.props;
-    const newCrypto = crypto.filter((item) => item.id !== id);
-    cryptoActions.setSearchData(newCrypto);
-    cryptoActions.setCryptoLists(newCrypto);
+    const { cryptoActions } = this.props;
+    cryptoActions.deleteCrypto({ id }).then((data) => {
+      if (data.statusCode === 200) {
+        cryptoActions.getCryptoLists();
+        toast.success('The crypto item was successfully deleted!');
+      } else {
+        toast.error(data.message);
+      }
+    });
   }
 
   removeAll() {
-    const { crypto, cryptoActions } = this.props;
+    const { cryptoActions } = this.props;
     const { listChecked } = this.state;
-    const newCrypto = crypto.filter(
-      (item) => !listChecked.includes(item.id)
-    );
-    cryptoActions.setSearchData(newCrypto);
-    cryptoActions.setCryptoLists(newCrypto);
+    cryptoActions
+      .deleteCryptoMultiple({ ids: listChecked })
+      .then((data) => {
+        if (data.statusCode === 200) {
+          cryptoActions.getCryptoLists();
+          toast.success('The crypto item was successfully deleted!');
+        } else {
+          toast.error(data.message);
+        }
+      });
   }
 
-  doDelete(){
-    const {cryptoId, modal} = this.state
-    cryptoId ? this.removeSingle(cryptoId) : this.removeAll()
-    this.setState({modal: {...modal, open: false}})
-    toast.success('The crypto item was successfully deleted!');
+  doDelete() {
+    const { cryptoId, modal } = this.state;
+    cryptoId ? this.removeSingle(cryptoId) : this.removeAll();
+    this.setState({ modal: { ...modal, open: false } });
+  }
+
+  clickPageAction(page = 1, limit = 10) {
+    const { cryptoActions } = this.props;
+    cryptoActions.getCryptoLists({ page, limit });
   }
 
   render() {
-    const { searchData, notFound, history, crypto } = this.props;
-    const { isCheckAll, listChecked, modal } = this.state;
+    const { notFound, history, crypto, loading } = this.props;
+    const { isCheckAll, listChecked, modal, query } = this.state;
     return (
       <>
         <div className="flex flex-col">
           <div className="overflow-x-auto">
+            {loading.getLists ? <Loading /> : null}
             <div className="flex items-center justify-between pb-4">
               <CryptoSearch
                 searchDelay={(query) => this.searchDelay(query)}
@@ -243,7 +239,7 @@ class CryptoLists extends React.Component {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {!notFound &&
-                      searchData.filter(Boolean).map((item) => {
+                      crypto?.data?.filter(Boolean).map((item) => {
                         return (
                           <tr key={item.id}>
                             <td className="px-6 py-2 text-sm font-medium text-gray-800 whitespace-nowrap">
@@ -274,7 +270,7 @@ class CryptoLists extends React.Component {
                                 className="px-2 inline-flex text-xs leading-5
                       font-semibold rounded-full bg-green-600 text-white"
                               >
-                                {item.type}
+                                {item.crypto_type_name}
                               </span>
                             </td>
                             <td className="px-6 py-2 text-green-600 text-sm font-medium text-gray-800 whitespace-nowrap">
@@ -282,8 +278,13 @@ class CryptoLists extends React.Component {
                             </td>
                             <td className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium">
                               <button
-                              onClick={() => history.push(`/crypto/edit/${item.id}`)}
-                              className="flex p-2.5 hover:text-gray-600 transition-all duration-300 text-gray-800">
+                                onClick={() =>
+                                  history.push(
+                                    `/crypto/edit/${item.id}`
+                                  )
+                                }
+                                className="flex p-2.5 hover:text-gray-600 transition-all duration-300 text-gray-800"
+                              >
                                 <FontAwesomeIcon
                                   className="h-4 w-4"
                                   icon={faEdit}
@@ -309,6 +310,15 @@ class CryptoLists extends React.Component {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                itemsPerPage={10}
+                pageCount={crypto?.meta?.total_pages}
+                items={crypto?.data}
+                totalEntries={crypto?.meta?.total_entries}
+                clickPageAction={(page, limit) =>
+                  this.clickPageAction(page, limit)
+                }
+              />
             </div>
           </div>
         </div>
@@ -320,7 +330,7 @@ class CryptoLists extends React.Component {
           cancelAction={() =>
             this.setState({ modal: { ...modal, open: false } })
           }
-          doConfirm={()=> this.doDelete()}
+          doConfirm={() => this.doDelete()}
         />
       </>
     );

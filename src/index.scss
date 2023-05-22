@@ -1,0 +1,27 @@
+body {
+  .form-group {
+    &.has-error {
+      & > input {
+        border-color: #d0021b !important;
+      }
+    }
+  }
+
+  .main-loading-container {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    background-image: url('../public/main-loading-icon.svg');
+    background-size: 100px 100px;
+    background-position: center center;
+    background-repeat: no-repeat;
+  }
+
+  .required:after {
+    content: ' *';
+    color: red;
+  }
+}

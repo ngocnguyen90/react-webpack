@@ -10,7 +10,17 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { Link, withRouter } from 'react-router-dom';
-import logo from '../../public/dogecoin-logo.svg'
+import logo from '../../public/dogecoin-logo.svg';
+import bitcoinLogo from '../../public/bitcoin-btc-logo.svg';
+import { bindActionCreators } from 'redux';
+import * as loginActions from '../actions/loginActions';
+import { connect } from 'react-redux';
+
+const mapStateToProps = (_state, _) => ({});
+
+const mapDispatchToProps = (dispatch) => ({
+  loginActions: bindActionCreators(loginActions, dispatch),
+});
 
 class Menu extends React.Component {
   constructor(props) {
@@ -25,35 +35,48 @@ class Menu extends React.Component {
         {
           key: 'dashboard',
           name: 'Dashboard',
-          to: '/dashboard',
+          to: '/',
           href: '#',
           current: false,
         },
-        { key: 'crypto', name: 'Crypto', to: '/crypto', href: '#', current: false },
+        {
+          key: 'crypto',
+          name: 'Crypto',
+          to: '/crypto',
+          href: '#',
+          current: false,
+        },
       ],
-      userNavigation: [
-        { name: 'Your Profile', href: '#' },
-        { name: 'Settings', href: '#' },
-        { name: 'Sign out', href: '#' },
-      ],
+      userNavigation: [{ name: 'Your Profile', href: '#' }],
     };
   }
 
-  componentWillMount(){
-    const { location } = this.props
-    this.changeNavigation(location.pathname.slice(1))
+  componentWillMount() {
+    const { location } = this.props;
+    this.changeNavigation(location.pathname.slice(1));
   }
 
-  changeNavigation(key){
-    const {navigation} = this.state
-    const newNavigation = navigation.map((item) => (item.key===key ? {...item, current: true} : {...item, current: false}))
+  changeNavigation(key) {
+    const { navigation } = this.state;
+    const newNavigation = navigation.map((item) =>
+      item.key === key
+        ? { ...item, current: true }
+        : { ...item, current: false }
+    );
     this.setState({
-      navigation: newNavigation
-    })
+      navigation: newNavigation,
+    });
   }
 
   classNames(...classes) {
     return classes.filter(Boolean).join(' ');
+  }
+
+  handleLogout() {
+    const { loginActions } = this.props;
+    loginActions.logout().then(() => {
+      this.props.history.push('/login');
+    });
   }
 
   render() {
@@ -68,7 +91,7 @@ class Menu extends React.Component {
                   <div className="flex-shrink-0">
                     <img
                       className="h-8 w-8"
-                      src={logo}
+                      src={bitcoinLogo}
                       alt="Your Company"
                     />
                   </div>
@@ -76,7 +99,9 @@ class Menu extends React.Component {
                     <div className="ml-10 flex items-baseline space-x-4">
                       {navigation.map((item) => (
                         <Link
-                          onClick={() => this.changeNavigation(item.key)}
+                          onClick={() =>
+                            this.changeNavigation(item.key)
+                          }
                           className={this.classNames(
                             item.current
                               ? 'bg-gray-900 text-white'
@@ -149,6 +174,20 @@ class Menu extends React.Component {
                               )}
                             </MenuHead.Item>
                           ))}
+                          <MenuHead.Item key="sign-out">
+                            {({ active }) => (
+                              <a
+                                href="#"
+                                className={this.classNames(
+                                  active ? 'bg-gray-100' : '',
+                                  'block px-4 py-2 text-sm text-gray-700'
+                                )}
+                                onClick={() => this.handleLogout()}
+                              >
+                                Sign out
+                              </a>
+                            )}
+                          </MenuHead.Item>
                         </MenuHead.Items>
                       </Transition>
                     </MenuHead>
@@ -244,4 +283,7 @@ class Menu extends React.Component {
   }
 }
 
-export default withRouter(Menu);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(withRouter(Menu));

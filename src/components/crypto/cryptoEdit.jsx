@@ -2,12 +2,15 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import * as cryptoActions from '../../actions/cryptoActions';
 import { connect } from 'react-redux';
-import { CYRPTO_TYPE } from '../../contants/constants';
 import { withRouter } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import AlertCustom from '../../containers/utilities/alert';
+import Loading from '../../containers/utilities/loading';
 
 const mapStateToProps = (state, _) => ({
-  crypto: state.crypto
+  cryptoTypes: state.crypto.cryptoTypes,
+  error: state.crypto.error,
+  loading: state.crypto.loading,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -18,47 +21,106 @@ class CryptoEdit extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      cryptoData: {}
+      cryptoEditForm: {
+        cryptoData: {
+          id: null,
+          name: '',
+          crypto_type_id: '',
+          price: 0,
+        },
+        validators: {},
+        errors: {},
+        touched: {},
+      },
     };
   }
 
-  componentWillMount() {
-    const { cryptoActions, match, crypto } = this.props;
-    const { id } = match?.params
-    const cryptoItem = crypto.find((item) => +item.id === +id)
-    this.setState({cryptoData: cryptoItem})
+  componentDidMount() {
+    const { cryptoActions, match } = this.props;
+    const { cryptoEditForm } = this.state;
+    const { id } = match?.params;
+    cryptoActions.resetErrors([]);
+    cryptoActions.getCryptoTypes();
+    cryptoActions.getCryptoDetail({ id }).then((data) => {
+      if (data) {
+        this.setState({
+          cryptoEditForm: {
+            ...cryptoEditForm,
+            cryptoData: {
+              id: data.id,
+              name: data.name,
+              crypto_type_id: data.crypto_type.id,
+              price: data.price,
+            },
+          },
+        });
+      }
+    });
     cryptoActions.setHeaderTitle('Edit Crypto');
   }
 
-  handleSubmit() {
-    const { cryptoData } = this.state;
+  handleSubmit(event) {
+    event.preventDefault();
+    const { cryptoEditForm } = this.state;
     const { cryptoActions } = this.props;
-    cryptoActions.editCrypto(cryptoData);
-    toast.success('The crypto item was successfully updated!');
-    this.props.history.push('/crypto');
+    const { cryptoData } = cryptoEditForm;
+    cryptoActions.editCrypto(cryptoData).then((data) => {
+      if (data) {
+        toast.success('The crypto item was successfully updated!');
+        this.props.history.push('/crypto');
+      }
+    });
   }
 
+  handleCancel() {
+    const { history, cryptoActions } = this.props;
+    cryptoActions.resetErrors();
+    history.push('/crypto');
+  }
+
+  renderError = () => {
+    const { error, cryptoActions } = this.props;
+    if (error && error.failed) {
+      return (
+        <AlertCustom
+          errors={error?.errors}
+          open={error.failed}
+          onClose={() => cryptoActions.resetErrors([])}
+        />
+      );
+    }
+  };
+
   render() {
-    const { cryptoData } = this.state;
-    const { history } = this.props;
+    const { cryptoEditForm } = this.state;
+    const { cryptoData } = cryptoEditForm;
+    const { cryptoTypes, loading } = this.props;
     return (
       <>
-        <form onSubmit={() => this.handleSubmit()}>
+        {this.renderError()}
+        {loading.addCrypto ? <Loading /> : null}
+        <form onSubmit={(event) => this.handleSubmit(event)}>
           <div className="mb-6">
             <label
               htmlFor="crypto-name"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              className="block mb-2 text-sm font-medium text-gray-900 required"
             >
               Crypto Name
             </label>
             <input
               type="text"
               id="crypto-name"
-              value={cryptoData.name}
+              value={cryptoData?.name}
               className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light"
               onChange={(e) =>
                 this.setState({
-                  cryptoData: { ...cryptoData, name: e.target.value },
+                  cryptoEditForm: {
+                    ...cryptoEditForm,
+                    cryptoData: {
+                      ...cryptoData,
+                      name: e.target.value,
+                    },
+                  },
                 })
               }
             />
@@ -66,17 +128,20 @@ class CryptoEdit extends React.Component {
           <div className="mb-6">
             <label
               htmlFor="crypto-type"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              className="block mb-2 text-sm font-medium text-gray-900 required"
             >
               Crypto Type
             </label>
             <select
-              value={cryptoData.type}
+              value={cryptoData?.crypto_type_id}
               onChange={(e) =>
                 this.setState({
-                  cryptoData: {
-                    ...cryptoData,
-                    type: +e.target.value,
+                  cryptoEditForm: {
+                    ...cryptoEditForm,
+                    cryptoData: {
+                      ...cryptoData,
+                      crypto_type_id: e.target.value,
+                    },
                   },
                 })
               }
@@ -84,7 +149,7 @@ class CryptoEdit extends React.Component {
               className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light"
             >
               <option></option>
-              {CYRPTO_TYPE.map((item) => {
+              {cryptoTypes?.data?.map((item) => {
                 return (
                   <option value={item.id} key={item.id}>
                     {item.name}
@@ -96,17 +161,20 @@ class CryptoEdit extends React.Component {
           <div className="mb-6">
             <label
               htmlFor="crypto-price"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              className="block mb-2 text-sm font-medium text-gray-900 required"
             >
               Crypto Price
             </label>
             <input
-              value={cryptoData.price}
+              value={cryptoData?.price}
               onChange={(e) =>
                 this.setState({
-                  cryptoData: {
-                    ...cryptoData,
-                    price: +e.target.value,
+                  cryptoEditForm: {
+                    ...cryptoEditForm,
+                    cryptoData: {
+                      ...cryptoData,
+                      price: e.target.value,
+                    },
                   },
                 })
               }
@@ -123,7 +191,7 @@ class CryptoEdit extends React.Component {
               Submit
             </button>
             <button
-              onClick={() => history.push('/crypto')}
+              onClick={() => this.handleCancel()}
               type="button"
               className="text-gray-500 bg-white hover:bg-gray-100 mr-1 border border-gray-200 inline-flex rounded-md px-3 py-2 text-sm font-medium items-center"
             >

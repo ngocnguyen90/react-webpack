@@ -1,44 +1,37 @@
-export const DATA = [
-  {
-    id: 1,
-    name:  'XRP',
-    price: 100,
-    type: 1
-  },
-  {
-    id: 2,
-    name:  'XLM',
-    price: 100,
-    type: 1
-  },
-  {
-    id: 3,
-    name:  'BITCOIN',
-    price: 50000,
-    type: 2
-  },
-  {
-    id: 4,
-    name:  'ETH',
-    price: 4000,
-    type: 2
-  }
-]
+//Common
+export const API_HOST = 'https://chatster-app-api.herokuapp.com';
+export const HEADER_TITLE = 'HEADER_TITLE';
+export const SET_HEADER_TITLE = 'SET_HEADER_TITLE';
+export const START_LOADING = 'START_LOADING';
+export const GET_RESET_ERRORS = 'GET_RESET_ERRORS';
 
-export const CYRPTO_TYPE = [
-  {
-    id: 1,
-    name: 'DEFI'
-  },
-  {
-    id: 2,
-    name: 'POW'
-  }
-]
-export const CRYPTO_LIST='CRYPTO_LIST'
-export const SET_CRYPTO_LIST='SET_CRYPTO_LIST'
-export const HEADER_TITLE='HEADER_TITLE'
-export const SET_HEADER_TITLE='SET_HEADER_TITLE'
-export const SET_SEARCH_DATA='SET_SEARCH_DATA'
-export const ADD_CRYPTO_LIST='ADD_CRYPTO_LIST'
-export const EDIT_CRYPTO_LIST='EDIT_CRYPTO_LIST'
+// Crypto
+export const ADD_CRYPTO_SUCCESSFUL = 'ADD_CRYPTO_SUCCESSFUL';
+export const ADD_CRYPTO_FAILED = 'ADD_CRYPTO_FAILED';
+
+export const GET_CRYPTOS_SUCCESSFUL = 'GET_CRYPTOS_SUCCESSFUL';
+export const GET_CRYPTOS_DETAIL_SUCCESSFUL =
+  'GET_CRYPTOS_DETAIL_SUCCESSFUL';
+
+export const GET_CRYPTOS_FAILED = 'GET_CRYPTOS_FAILED';
+export const GET_CRYPTO_TYPES_SUCCESSFUL =
+  'GET_CRYPTO_TYPES_SUCCESSFUL';
+
+export const EDIT_CRYPTO_SUCCESSFUL = 'EDIT_CRYPTO_SUCCESSFUL';
+export const EDIT_CRYPTO_FAILED = 'EDIT_CRYPTO_FAILED';
+
+export const DELETE_CRYPTO_SUCCESSFUL = 'DELETE_CRYPTO_SUCCESSFUL';
+export const DELETE_CRYPTO_FAILED = 'DELETE_CRYPTO_FAILED';
+
+export const DELETE_CRYPTO_MULTIPLE_SUCCESSFUL =
+  'DELETE_CRYPTO_MULTIPLE_SUCCESSFUL';
+export const DELETE_CRYPTO_MULTIPLE_FAILED =
+  'DELETE_CRYPTO_MULTIPLE_FAILED';
+
+// Login
+export const LOGIN_FAILED = 'LOGIN_FAILED';
+export const LOGIN_SUCCESSFUL = 'LOGIN_SUCCESSFUL';
+export const SIGN_OUT_SUCCESSFUL = 'SIGN_OUT_SUCCESSFUL';
+
+export const SIGN_UP_FAILED = 'SIGN_UP_FAILED';
+export const SIGN_UP_SUCCESSFUL = 'SIGN_UP_SUCCESSFUL';

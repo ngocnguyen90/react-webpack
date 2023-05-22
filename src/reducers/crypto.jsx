@@ -1,14 +1,36 @@
 import {
-  CRYPTO_LIST,
-  DATA,
   HEADER_TITLE,
   SET_HEADER_TITLE,
-  SET_SEARCH_DATA,
-  SET_CRYPTO_LIST,
-  ADD_CRYPTO_LIST,
-  EDIT_CRYPTO_LIST
+  GET_CRYPTOS_SUCCESSFUL,
+  GET_CRYPTOS_FAILED,
+  START_LOADING,
+  GET_CRYPTO_TYPES_SUCCESSFUL,
+  ADD_CRYPTO_FAILED,
+  GET_RESET_ERRORS,
+  ADD_CRYPTO_SUCCESSFUL,
+  EDIT_CRYPTO_SUCCESSFUL,
+  EDIT_CRYPTO_FAILED,
+  DELETE_CRYPTO_SUCCESSFUL,
+  DELETE_CRYPTO_MULTIPLE_SUCCESSFUL,
 } from '../contants/constants';
-import { isEmpty } from 'lodash';
+
+const defaultState = {
+  cryptoLists: [],
+  cryptoTypes: [],
+  loading: {
+    getLists: false,
+    getCryptoTypes: false,
+    addCrypto: false,
+    editCrypto: false,
+    getCryptoDetail: false,
+    deleteCrypto: false,
+    deleteMultipleCrypto: false,
+  },
+  error: {
+    failed: false,
+    message: null,
+  },
+};
 
 const headerTitle = (state = '', action) => {
   let newState = [];
@@ -26,30 +48,102 @@ const headerTitle = (state = '', action) => {
   return newState;
 };
 
-const crypto = (state = DATA, action) => {
+const crypto = (state = defaultState, action) => {
   let newState = [];
   switch (action.type) {
-    case CRYPTO_LIST:
-      newState = state;
+    case GET_CRYPTOS_SUCCESSFUL:
+      newState = {
+        ...state,
+        cryptoLists: action.value,
+        loading: { ...state.loading, getLists: false },
+      };
       break;
-    case SET_CRYPTO_LIST:
-      newState = action.value;
+    case GET_CRYPTOS_FAILED:
+      const {
+        error: { statusCode },
+      } = action.value;
+
+      newState = {
+        ...state,
+        loading: { ...state.loading, getLists: false },
+        error: {
+          statusCode,
+          failed: true,
+          message:
+            action?.value.error?.message ||
+            'Something Went Wrong. Please try again.',
+        },
+      };
       break;
-    case ADD_CRYPTO_LIST:
-      const newCryptoId = isEmpty(state)
-        ? 1
-        : state.reduce(
-            (acc, item) => (acc.id > item.id ? acc.id : item.id),
-            0
-          ) + 1;
-      newState = [...state, { ...action.value, id: newCryptoId }];
+    case START_LOADING:
+      newState = {
+        ...state,
+        loading: {
+          ...state.loading,
+          [action.value.loadingAction]: true,
+        },
+      };
       break;
-    case EDIT_CRYPTO_LIST:
-      newState = state.reduce((acc, item)=> {
-        if(item.id === action?.value?.id) acc.push(action.value)
-        else acc.push(item)
-        return acc
-      }, []);
+    case GET_CRYPTO_TYPES_SUCCESSFUL:
+      newState = {
+        ...state,
+        cryptoTypes: action.value,
+        loading: { ...state.loading, getCryptoTypes: false },
+      };
+      break;
+    case ADD_CRYPTO_SUCCESSFUL:
+      newState = {
+        ...state,
+        loading: { ...state.loading, addCrypto: false },
+      };
+      break;
+    case ADD_CRYPTO_FAILED:
+      newState = {
+        ...state,
+        loading: { ...state.loading, addCrypto: false },
+        error: {
+          statusCode: 400,
+          failed: true,
+          errors: action?.value.error?.errors,
+          message: action?.value.error?.message,
+        },
+      };
+      break;
+    case EDIT_CRYPTO_SUCCESSFUL:
+      newState = {
+        ...state,
+        loading: { ...state.loading, addCrypto: false },
+      };
+      break;
+    case EDIT_CRYPTO_FAILED:
+      newState = {
+        ...state,
+        loading: { ...state.loading, editCrypto: false },
+        error: {
+          statusCode: 400,
+          failed: true,
+          errors: action?.value.error?.errors,
+          message: action?.value.error?.message,
+        },
+      };
+      break;
+    case DELETE_CRYPTO_SUCCESSFUL:
+      newState = {
+        ...state,
+        loading: { ...state.loading, deleteCrypto: false },
+      };
+      break;
+    case DELETE_CRYPTO_MULTIPLE_SUCCESSFUL:
+      newState = {
+        ...state,
+        loading: { ...state.loading, deleteMultipleCrypto: false },
+      };
+      break;
+    case GET_RESET_ERRORS:
+      newState = {
+        ...state,
+        error: { ...defaultState.error },
+      };
       break;
     default:
       newState = state;
@@ -58,18 +152,4 @@ const crypto = (state = DATA, action) => {
   return newState;
 };
 
-const searchData = (state = [], action) => {
-  let newState = [];
-  switch (action.type) {
-    case SET_SEARCH_DATA:
-      newState = action.value;
-      break;
-
-    default:
-      newState = state;
-      break;
-  }
-  return newState;
-};
-
-export { crypto, headerTitle, searchData };
+export { crypto, headerTitle };
